@@ -33,7 +33,7 @@ export const CONFIG = {
   // Letras de cada lado, en el orden en que se recorren. COMPLÉTALAS con tus letras reales.
   // Una letra que no esté aquí cae en un lado extra al final.
   LADOS: [
-    ['A', 'C', 'F'],
-    ['B', 'D', 'G'],
+    ['A', 'C', 'F', 'H', 'J', 'L', 'VN', 'VQ', 'VS', 'VU'],
+    ['B', 'D', 'G', 'I', 'K', 'M', 'VP', 'VR', 'VT'],
   ],
 };

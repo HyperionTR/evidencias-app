@@ -7,6 +7,9 @@ const limpiar = (s) => {
   s = (s ?? '').trim();
   return s === '#N/A' ? '' : s;
 };
+const sorting_statuses = [
+  "in_container", "sorting", "buffered"
+]
 
 export function parsearPegado(texto) {
   const paquetes = [];
@@ -23,6 +26,14 @@ export function parsearPegado(texto) {
     const id = c[0];
     if (!ID_RE.test(id) || vistos.has(id)) continue; // ignora encabezados, "--- Validación", vacíos, duplicados
     vistos.add(id);
+
+    // Validamos si el estatus se encuentra en alguna de las 3 columnas
+    let estatus = c[7]; 
+    if (sorting_statuses.includes(c[5]))
+      estatus = c[5]
+    else if (sorting_statuses.includes(c[6]))
+      estatus = c[6]
+
     paquetes.push({
       id,
       ruta: c[1] || '',
@@ -31,7 +42,7 @@ export function parsearPegado(texto) {
       descripcion: c[4] || '',
       origen: c[5] || '',
       embalaje: c[6] || '',
-      estatus: (c[7] || '').toLowerCase(),
+      estatus: (estatus || '').toLowerCase(),
       soloId: c.filter(Boolean).length === 1,
       orden: paquetes.length,
     });

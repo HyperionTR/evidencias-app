@@ -1,9 +1,9 @@
 // Todo lo que cambia entre equipos/entornos vive aquí. Edita sin miedo.
 export const CONFIG = {
   // --- Google (ver pasos de configuración) ---
-  GOOGLE_CLIENT_ID: 'PEGA_AQUI_TU_CLIENT_ID.apps.googleusercontent.com',
-  ROOT_FOLDER_ID: 'PEGA_AQUI_ID_CARPETA_Evidencias_de_validacion', // carpeta compartida con el equipo (editor)
-  SHEET_ID: 'PEGA_AQUI_ID_HOJA_REGISTRO',                          // hoja NUEVA, no la del formulario
+  GOOGLE_CLIENT_ID: '213262182219-dntd1v10rthlbs8q4dnvm9dnlaaf763i.apps.googleusercontent.com',
+  ROOT_FOLDER_ID: '1-Su0AfvpcE0YV4vUhmYr1lAGVqmpYHdR', // carpeta compartida con el equipo (editor)
+  SHEET_ID: '1FPG1re15FkRWDxdJjrKwnuk5B5hQbnMQI3TG2KC0JLU',                          // hoja NUEVA, no la del formulario
   SHEET_TAB: 'Registro',
 
   VALIDADORES: [

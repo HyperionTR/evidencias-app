@@ -29,10 +29,12 @@ export function parsearPegado(texto) {
 
     // Validamos si el estatus se encuentra en alguna de las 3 columnas
     let estatus = c[7]; 
-    if (sorting_statuses.includes(c[5]))
-      estatus = c[5]
-    else if (sorting_statuses.includes(c[6]))
-      estatus = c[6]
+    if (sorting_statuses.includes(c[5])){
+      estatus = c[5]; c[5] = '';
+    }
+    else if (sorting_statuses.includes(c[6])){
+      estatus = c[6]; c[6] = '';
+    }
 
     paquetes.push({
       id,

@@ -14,7 +14,7 @@ export const CONFIG = {
   // Valor que se escribe en la columna "Tipo de validacion"
   TIPOS: { validacion: 'auditoria', segregado: 'segregado' },
 
-  FOTO_MAX_PX: 1440,   // lado mayor
+  FOTO_MAX_PX: 1080,   // lado mayor
   FOTO_CALIDAD: 0.8,   // JPEG
 
   // --- Orden de rutas ---

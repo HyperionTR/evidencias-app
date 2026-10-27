@@ -77,7 +77,7 @@ function renderCamara() {
   $('#dp-id').textContent = p?.id ?? 'Sin paquete';
   $('#dp-desc').textContent = p?.descripcion ?? '';
   $('#dp-ruta').textContent = p ? [p.ruta, p.parada && `parada ${p.parada}`].filter(Boolean).join(' · ') : '';
-  $('#dp-extra').textContent = p ? [p.origen, p.embalaje, p.estatus].filter(Boolean).join(' · ') : '';
+  $('#dp-extra').textContent = p ? [p.origen, p.embalaje, p.estatus, p.monto].filter(Boolean).join(' · ') : '';
   $('#chk-vacia').checked = estado_app.cajaVacia;
   const fs = p ? fotosDe(p.id) : [];
   $('#miniaturas').innerHTML = '';

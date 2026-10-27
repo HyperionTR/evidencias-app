@@ -10,9 +10,9 @@ const fechaCarpeta = (t) => {
   return `${pad(d.getDate())}-${pad(d.getMonth() + 1)}-${d.getFullYear()}`;
 };
 
-export function crearSync(S, alCambiar) {
+export function crearSync(estado_app, alCambiar) {
   let corriendo = false, espera = 2000, timer = null;
-  const pendientes = () => S.fotos.filter((f) => f.estado !== 'listo');
+  const pendientes = () => estado_app.fotos.filter((f) => f.estado !== 'listo');
 
   async function subir(f) {
     if (f.estado === 'pendiente') {
@@ -35,7 +35,7 @@ export function crearSync(S, alCambiar) {
     if (corriendo || !navigator.onLine) return;
     corriendo = true;
     clearTimeout(timer);
-    S.sync = 'ok';
+    estado_app.sync = 'ok';
     alCambiar();
     try {
       for (let f; (f = pendientes()[0]); ) {
@@ -46,7 +46,7 @@ export function crearSync(S, alCambiar) {
     } catch (e) {
       if (e.code !== 'AUTH') {
         // red caída u error temporal: reintento con espera creciente
-        S.sync = 'error';
+        estado_app.sync = 'error';
         console.warn('subida falló', e);
         timer = setTimeout(procesar, espera);
         espera = Math.min(espera * 2, 60000);

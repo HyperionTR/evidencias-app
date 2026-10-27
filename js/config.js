@@ -14,7 +14,7 @@ export const CONFIG = {
   // Valor que se escribe en la columna "Tipo de validacion"
   TIPOS: { validacion: 'auditoria', segregado: 'segregado' },
 
-  FOTO_MAX_PX: 1600,   // lado mayor
+  FOTO_MAX_PX: 3200,   // lado mayor
   FOTO_CALIDAD: 0.8,   // JPEG
 
   // --- Orden de rutas ---
@@ -33,7 +33,7 @@ export const CONFIG = {
   // Letras de cada lado, en el orden en que se recorren. COMPLÉTALAS con tus letras reales.
   // Una letra que no esté aquí cae en un lado extra al final.
   LADOS: [
-    ['A', 'C', 'F', 'H', 'J', 'L', 'VN', 'VQ', 'VS', 'VU'],
-    ['B', 'D', 'G', 'I', 'K', 'M', 'VP', 'VR', 'VT'],
+    ['A', 'C', 'F', 'H', 'J', 'L', 'N', 'Q', 'S', 'U', 'VL', 'VN', 'VQ', 'VS', 'VU'],
+    ['B', 'D', 'G', 'I', 'K', 'M', 'P', 'R', 'T', 'V', 'VV', 'VP', 'VR', 'VT'],
   ],
 };

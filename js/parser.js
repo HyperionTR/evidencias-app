@@ -8,7 +8,7 @@ const limpiar = (s) => {
   return s === '#N/A' ? '' : s;
 };
 const sorting_statuses = [
-  "in_container", "sorting", "buffered"
+  "in_container", "sorting", "buffered", 'ready_to_deliver'
 ]
 
 export function parsearPegado(texto) {

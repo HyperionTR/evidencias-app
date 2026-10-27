@@ -60,7 +60,7 @@ async function iniciarCamara() {
   if (estado_app.stream) return;
   try {
     estado_app.stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal: 'environment' }, aspectRatio: { ideal: 3 / 4 },width: { ideal: 1080 }, height: { ideal: 1920 } },
+      video: { facingMode: { ideal: 'environment' }, aspectRatio: { ideal: 3 / 4 },width: { ideal: 1080 }, height: { ideal: 1440 } },
       audio: false,
     });
     toast(`${$('#video').videoWidth}×${$('#video').videoHeight}`);

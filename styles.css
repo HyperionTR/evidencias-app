@@ -1,4 +1,4 @@
-:root { --bg:#0b1220; --fg:#e8edf5; --mut:#8b97ab; --card:#151f33; --cyan:#4fd8f0; --verde:#bfeab0; --ok:#2ecc71; --warn:#f5b041; --bad:#e74c3c; }
+:root { --bg:#0b1220; --fg:#e8edf5; --mut:#8b97ab; --card:#151f33; --cyan:#4fd8f0; --verde:#bfeab0; --ok:#2ecc71; --warn:#f5b041; --bad:#e74c3c; --cardtrns:#151f3300 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 [hidden] { display: none !important; }
 html, body { margin:0; height:100%; background:var(--bg); color:var(--fg); font:16px/1.35 system-ui, sans-serif; }
@@ -23,13 +23,13 @@ tr.valido { background:#7fe8f5; } tr.disp { background:var(--verde); }
 
 #pantalla-camara { position:absolute; inset:0; background:var(--card); }
 #video { width:100%; height:100%; object-fit:contain; background: var(--card); }
-#datos-paquete { position:absolute; top:0; left:0; right:0; padding:10px 12px; background:linear-gradient(#000c, #0000); text-shadow:0 1px 3px #000; }
+#datos-paquete { position:absolute; top:0; left:0; right:0; padding:10px 12px; background:linear-gradient(var(--card), var(--cardtrns)); text-shadow:0 1px 3px #000; }
 #dp-id { font:700 26px/1.1 ui-monospace, monospace; letter-spacing:.5px; }
 #dp-desc { font-size:14px; margin-top:4px; max-height:2.7em; overflow:hidden; }
 #dp-ruta { font-size:22px; font-weight:700; color:var(--cyan); margin-top:2px; }
 #dp-extra { font-size:13px; color:#cfd8e6; }
 #dp-validacion { font-size:13px; color:#cfd8e6; } /*Si algo falla, revisar este -*/
-#abajo { position:absolute; bottom:0; left:0; right:0; padding:8px 12px 10px; background:linear-gradient(#0000, #000c); display:flex; flex-direction:column; gap:8px; align-items:center; }
+#abajo { position:absolute; bottom:0; left:0; right:0; padding:8px 12px 10px; background:linear-gradient(var(--cardtrns), var(--card)); display:flex; flex-direction:column; gap:8px; align-items:center; }
 #miniaturas { display:flex; gap:6px; overflow-x:auto; max-width:100%; }
 .mini { position:relative; width:52px; height:52px; border-radius:8px; background:#223; flex:none; display:grid; place-items:center; color:var(--ok); }
 .mini img { width:100%; height:100%; object-fit:cover; border-radius:8px; }

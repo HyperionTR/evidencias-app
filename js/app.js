@@ -14,6 +14,7 @@ const sync = crearSync(estado_app, () => { renderEstado(); renderTabla(); if (es
 
 const fotosDe = (id) => estado_app.fotos.filter((f) => f.paqueteId === id);
 const porId = (id) => estado_app.paquetes.find((p) => p.id === id);
+// TODO - Reemplazar por una funcion que devuelta devuelva uno de 3 estados: disponible, validado o tomado 
 const validado = (p) => fotosDe(p.id).length > 0;
 // Se puede ir a buscar: in_container, o cualquier paquete de segregado / lista de solo IDs
 const disponible = (p) => p.tipo === 'segregado' || p.soloId || p.estatus === 'in_container' || p.estatus === 'ready_to_deliver';
@@ -49,6 +50,7 @@ function renderTabla() {
   $('#resumen').textContent =
     `${lista.length} paquetes · ${lista.filter(validado).length} validados · ` +
     `${cola().filter((p) => !validado(p)).length} por validar`;
+  // TODO - Agregar un tercer estado, TOMADO, para paquetes a segregar que ya he tomado del baker
   $('#tabla tbody').innerHTML = lista.map((p) =>
     `<tr data-id="${p.id}" class="${validado(p) ? 'valido' : disponible(p) ? 'disp' : ''}">` +
     `<td>${p.id}</td><td>${esc(p.ruta)}</td><td>${esc(p.parada)}</td><td>${esc(p.estatus)}</td>` +

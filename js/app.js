@@ -78,6 +78,7 @@ function renderCamara() {
   $('#dp-desc').textContent = p?.descripcion ?? '';
   $('#dp-ruta').textContent = p ? [p.ruta, p.parada && `parada ${p.parada}`].filter(Boolean).join(' · ') : '';
   $('#dp-extra').textContent = p ? [p.origen, p.embalaje, p.estatus, p.monto].filter(Boolean).join(' · ') : '';
+  $('#dp-validacion').textContent = p ? p.tipo : '';
   $('#chk-vacia').checked = estado_app.cajaVacia;
   const fs = p ? fotosDe(p.id) : [];
   $('#miniaturas').innerHTML = '';

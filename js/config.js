@@ -27,8 +27,8 @@ export const CONFIG = {
     AM2:   { lados: true,  desc: true },
     AM0:   { lados: true,  desc: true },
     AM1:   { lados: true,  desc: true },
-    AM101: { lados: true,  desc: true },   // SUPUESTO: confirma tu regla real
-    AM201: { lados: true,  desc: true },   // SUPUESTO: confirma tu regla real
+    AM101: { lados: true,  desc: true },   
+    AM201: { lados: true,  desc: true },   
   },
   // Letras de cada lado, en el orden en que se recorren. COMPLÉTALAS con tus letras reales.
   // Una letra que no esté aquí cae en un lado extra al final.

@@ -21,13 +21,14 @@ table { width:100%; border-collapse:collapse; color:#000; font-size:14px; }
 td { padding:9px 8px; border-bottom:1px solid #ddd; }
 tr.valido { background:#7fe8f5; } tr.disp { background:var(--verde); }
 
-#pantalla-camara { position:absolute; inset:0; background:#000; }
-#video { width:100%; height:100%; object-fit:contain; background: #000; }
+#pantalla-camara { position:absolute; inset:0; background:#0b1220; }
+#video { width:100%; height:100%; object-fit:contain; background: #0b1220; }
 #datos-paquete { position:absolute; top:0; left:0; right:0; padding:10px 12px; background:linear-gradient(#000c, #0000); text-shadow:0 1px 3px #000; }
 #dp-id { font:700 26px/1.1 ui-monospace, monospace; letter-spacing:.5px; }
 #dp-desc { font-size:14px; margin-top:4px; max-height:2.7em; overflow:hidden; }
 #dp-ruta { font-size:22px; font-weight:700; color:var(--cyan); margin-top:2px; }
 #dp-extra { font-size:13px; color:#cfd8e6; }
+#dp-validacion { font-size:13px; color:#cfd8e6; } /*Si algo falla, revisar este -*/
 #abajo { position:absolute; bottom:0; left:0; right:0; padding:8px 12px 10px; background:linear-gradient(#0000, #000c); display:flex; flex-direction:column; gap:8px; align-items:center; }
 #miniaturas { display:flex; gap:6px; overflow-x:auto; max-width:100%; }
 .mini { position:relative; width:52px; height:52px; border-radius:8px; background:#223; flex:none; display:grid; place-items:center; color:var(--ok); }

@@ -21,8 +21,8 @@ table { width:100%; border-collapse:collapse; color:#000; font-size:14px; }
 td { padding:9px 8px; border-bottom:1px solid #ddd; }
 tr.valido { background:#7fe8f5; } tr.disp { background:var(--verde); }
 
-#pantalla-camara { position:absolute; inset:0; background:#0b1220; }
-#video { width:100%; height:100%; object-fit:contain; background: #0b1220; }
+#pantalla-camara { position:absolute; inset:0; background:var(--card); }
+#video { width:100%; height:100%; object-fit:contain; background: var(--card); }
 #datos-paquete { position:absolute; top:0; left:0; right:0; padding:10px 12px; background:linear-gradient(#000c, #0000); text-shadow:0 1px 3px #000; }
 #dp-id { font:700 26px/1.1 ui-monospace, monospace; letter-spacing:.5px; }
 #dp-desc { font-size:14px; margin-top:4px; max-height:2.7em; overflow:hidden; }

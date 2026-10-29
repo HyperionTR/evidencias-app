@@ -16,7 +16,7 @@ const fotosDe = (id) => estado_app.fotos.filter((f) => f.paqueteId === id);
 const porId = (id) => estado_app.paquetes.find((p) => p.id === id);
 const validado = (p) => fotosDe(p.id).length > 0;
 // Se puede ir a buscar: in_container, o cualquier paquete de segregado / lista de solo IDs
-const disponible = (p) => p.tipo === 'segregado' || p.soloId || p.estatus === 'in_container' || p.estatus === 'ready_to_deliver';
+const disponible = (p) => p.soloId || p.estatus === 'in_container' || p.estatus === 'ready_to_deliver';
 const ordenada = () => {
   const o = [...estado_app.paquetes].sort(comparar);
   return [...o.filter(disponible), ...o.filter((p) => !disponible(p))];

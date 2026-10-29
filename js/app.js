@@ -46,9 +46,17 @@ async function cargarLista(reemplazar) {
 
 function renderTabla() {
   const lista = ordenada();
-  $('#resumen').textContent =
-    `${lista.length} paquetes · ${lista.filter(validado).length} validados · ` +
-    `${cola().filter((p) => !validado(p)).length} por validar`;
+
+  const paquetes_total = lista.length;
+  const paquetes_sorting = lista.filter((p) => !disponible(p)).length;
+  const paquetes_conterizados = lista.filter((p) => disponible(p)).length;
+
+  const paquetes_validados = lista.filter(validado).length;
+  const paquetes_sin_validar = paquetes_total - paquetes_validados;
+  $('#resumen-1').textContent =
+    `${paquetes_total} paquetes · ${paquetes_conterizados} en contenedor · ${paquetes_sorting} no contenerizados`;
+  $('#resumen-2').textContent =
+    `${paquetes_validados} validados · ${paquetes_sin_validar} por validar`;
   $('#tabla tbody').innerHTML = lista.map((p) =>
     `<tr data-id="${p.id}" class="${validado(p) ? 'valido' : disponible(p) ? 'disp' : ''}">` +
     `<td>${p.id}</td><td>${esc(p.ruta)}</td><td>${esc(p.parada)}</td><td>${esc(p.estatus)}</td>` +
@@ -76,7 +84,7 @@ function renderCamara() {
   $('#dp-id').textContent = p?.id ?? 'Sin paquete';
   $('#dp-desc').textContent = p?.descripcion ?? '';
   $('#dp-ruta').textContent = p ? [p.ruta, p.parada && `parada ${p.parada}`].filter(Boolean).join(' · ') : '';
-  $('#dp-extra').textContent = p ? [p.origen, p.embalaje, p.estatus, p.monto].filter(Boolean).join(' · ') : '';
+  $('#dp-extra').textContent = p ? [p.origen, p.embalaje, p.estatus, `$${p.monto}`].filter(Boolean).join(' · ') : '';
   $('#dp-validacion').textContent = p ? p.tipo : '';
   $('#chk-vacia').checked = estado_app.cajaVacia;
   const fs = p ? fotosDe(p.id) : [];
@@ -124,6 +132,8 @@ function cerrarPrevio() {
 }
 
 function capturar() {
+  // Añadimos funciones para redibujar la interfaz inmediatamente después del click
+  renderCamara(); renderEstado();
   const v = $('#video'); if (!v.videoWidth || !$('#previo').hidden) return; // ignora toques si ya hay vista previa
   const k = Math.min(1, CONFIG.FOTO_MAX_PX / Math.max(v.videoWidth, v.videoHeight));
   const c = document.createElement('canvas');

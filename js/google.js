@@ -47,7 +47,9 @@ export async function conectar() {
 }
 
 async function api(url, opts = {}) {
-  if (!conectado()) await conectar();
+  // Sin sesión NO se abre el popup solo: el navegador lo bloquea si no viene de un toque del usuario.
+  // Quien conecta es el botón de estado ("Conectar Google"), que sí es un toque.
+  if (!conectado()) throw err('Sin sesión', 'AUTH');
   const r = await fetch(url, { ...opts, headers: { ...opts.headers, Authorization: `Bearer ${token}` } });
   if (r.status === 401) {
     token = null;

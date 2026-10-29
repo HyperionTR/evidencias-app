@@ -63,7 +63,6 @@ async function iniciarCamara() {
       video: { facingMode: { ideal: 'environment' }, aspectRatio: { ideal: 4 / 3 },width: { ideal: 1440 }, height: { ideal: 1080 } },
       audio: false,
     });
-    toast(`${$('#video').videoWidth}×${$('#video').videoHeight}`);
     $('#video').srcObject = estado_app.stream;
     await $('#video').play();
   } catch (e) { toast('No se pudo abrir la cámara: ' + e.message); }
@@ -107,24 +106,36 @@ function siguientePendiente() {
   toast('No quedan pendientes 🎉');
 }
 
+// Mostrar/ocultar la vista previa. Se pausa el video mientras se decide: congela la imagen y evita
+// que el navegador móvil deje de repintar la capa superpuesta (el overlay se "veía" solo al deslizar).
+async function mostrarPrevio(blob) {
+  estado_app.previo = blob;
+  const img = $('#previo-img');
+  URL.revokeObjectURL(img.src);
+  img.src = URL.createObjectURL(blob);
+  try { await img.decode(); } catch {}        // espera a que la imagen esté lista para pintarse
+  $('#video').pause();
+  $('#previo').hidden = false;
+}
+function cerrarPrevio() {
+  estado_app.previo = null;
+  $('#previo').hidden = true;
+  $('#video').play().catch(() => {});
+}
+
 function capturar() {
-  const v = $('#video'); if (!v.videoWidth) return;
+  const v = $('#video'); if (!v.videoWidth || !$('#previo').hidden) return; // ignora toques si ya hay vista previa
   const k = Math.min(1, CONFIG.FOTO_MAX_PX / Math.max(v.videoWidth, v.videoHeight));
   const c = document.createElement('canvas');
   c.width = Math.round(v.videoWidth * k); c.height = Math.round(v.videoHeight * k);
   c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
-  c.toBlob((b) => {
-    estado_app.previo = b;
-    URL.revokeObjectURL($('#previo-img').src);
-    $('#previo-img').src = URL.createObjectURL(b);
-    $('#previo').hidden = false;
-  }, 'image/jpeg', CONFIG.FOTO_CALIDAD);
+  c.toBlob((b) => b && mostrarPrevio(b), 'image/jpeg', CONFIG.FOTO_CALIDAD);
 }
 
 async function aceptar() {
   const p = porId(estado_app.actual);
   if (!p || !estado_app.previo) return;
-  if (!estado_app.validador) { $('#previo').hidden = true; return toast('Elige tu nombre arriba'); }
+  if (!estado_app.validador) { cerrarPrevio(); return toast('Elige tu nombre arriba'); }
   const n = Math.max(0, ...fotosDe(p.id).map((f) => f.n)) + 1; // 2ª foto = re-validación o foto extra
   const f = {
     paqueteId: p.id, n, nombre: n === 1 ? `${p.id}.jpg` : `${p.id}_${n}.jpg`,
@@ -132,8 +143,8 @@ async function aceptar() {
     tipo: CONFIG.TIPOS[p.tipo] ?? p.tipo, cajaVacia: estado_app.cajaVacia, estado: 'pendiente',
   };
   f.uid = await poner('fotos', f);      // guardado local primero: nada se pierde sin internet
-  estado_app.fotos.push(f); estado_app.previo = null;
-  $('#previo').hidden = true;
+  estado_app.fotos.push(f);
+  cerrarPrevio();
   renderCamara(); renderTabla(); renderEstado();
   sync.procesar();                       // sube en segundo plano, sin esperar
 }
@@ -180,7 +191,7 @@ async function iniciar() {
   document.querySelectorAll('nav button').forEach((b) => (b.onclick = () => mostrar(b.dataset.ir)));
   $('#btn-disparo').onclick = capturar;
   $('#btn-aceptar').onclick = aceptar;
-  $('#btn-rechazar').onclick = () => { estado_app.previo = null; $('#previo').hidden = true; };
+  $('#btn-rechazar').onclick = cerrarPrevio;
   $('#btn-prev').onclick = () => paso(-1);
   $('#btn-next').onclick = () => paso(1);
   $('#btn-listo').onclick = siguientePendiente;

@@ -2,8 +2,8 @@
 export const CONFIG = {
   // --- Google (ver pasos de configuración) ---
   GOOGLE_CLIENT_ID: '213262182219-dntd1v10rthlbs8q4dnvm9dnlaaf763i.apps.googleusercontent.com',
-  ROOT_FOLDER_ID: '1-Su0AfvpcE0YV4vUhmYr1lAGVqmpYHdR', // carpeta compartida con el equipo (editor)
-  SHEET_ID: '1FPG1re15FkRWDxdJjrKwnuk5B5hQbnMQI3TG2KC0JLU',                          // hoja NUEVA, no la del formulario
+  ROOT_FOLDER_ID: '1X71i48zu5dJ2vl_jrfLZRO_elxDywE0t', // carpeta compartida con el equipo (editor)
+  SHEET_ID: '1HHfMoazEFH0KSzXEOI5CeHIFxgEr376oVTR5SzwNZj8',                          // hoja NUEVA, no la del formulario
   SHEET_TAB: 'Registro',
 
   VALIDADORES: [
@@ -34,6 +34,6 @@ export const CONFIG = {
   // Una letra que no esté aquí cae en un lado extra al final.
   LADOS: [
     ['A', 'C', 'F', 'H', 'J', 'L', 'N', 'Q', 'S', 'U', 'VL', 'VN', 'VQ', 'VS', 'VU'],
-    ['B', 'D', 'G', 'I', 'K', 'M', 'P', 'R', 'T', 'V', 'VV', 'VP', 'VR', 'VT'],
+    ['B', 'D', 'G', 'I', 'K', 'M', 'P', 'R', 'T', 'V', 'VV', 'VP', 'VR', 'VT', 'VV'],
   ],
 };

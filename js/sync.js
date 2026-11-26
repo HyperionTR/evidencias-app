@@ -29,6 +29,7 @@ export function crearSync(estado_app, alCambiar) {
       for (const f of cola) {
         if (!navigator.onLine || !conectado()) break;
 
+        // Paso 1: Subir imagen + descripción a Drive si aún está pendiente
         if (f.estado === 'pendiente') {
           const carpetaId = await asegurarRuta([carpetaFecha(f.ts), f.validador]);
           const arch = await subirArchivo(f.nombre, f.blob, carpetaId, f.descripcionDrive);
@@ -39,11 +40,11 @@ export function crearSync(estado_app, alCambiar) {
           alCambiar();
         }
 
+        // Paso 2: Registrar fila en la pestaña del mes correspondiente en Sheets
         if (f.estado === 'enDrive') {
           await agregarFila(f);
           f.estado = 'listo';
-          delete f.blob;
-          delete f.miniBlob;
+          delete f.blob; // Libera los bytes de la imagen en IndexedDB pero conserva el registro ✓
           await poner('fotos', f);
           alCambiar();
         }

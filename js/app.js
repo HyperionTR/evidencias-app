@@ -10,7 +10,6 @@ const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&l
 
 // Orígenes que por regla operativa nunca llevan Bolsa de Seguridad (BS)
 const ORIGEN_SIN_BS_RE = /^(cross|xd_drop_off|xp_drop_off|drop_off)/i;
-const PASOS_ZOOM = [1, 1.5, 2];
 
 // ---------- Estado ----------
 const estado_app = {
@@ -21,11 +20,7 @@ const estado_app = {
   cajaVacia: false,
   previo: null,
   stream: null,
-  capturador: null,
-  capturando: false,
   flash: false,
-  zoom: 1,
-  zoomNiveles: [1],
   filtro: 'todos',
   sync: 'ok',
   pantalla: 'datos',
@@ -200,79 +195,36 @@ function renderTabla() {
   }).join('');
 }
 
-// ---------- Cámara: Vista previa ligera + Captura fotográfica de alta resolución ----------
-function restriccionesPreview() {
-  return {
-    facingMode: { ideal: 'environment' },
-    aspectRatio: { ideal: 4 / 3 },
-    width: { ideal: CONFIG.VIDEO_IDEAL_W },
-    height: { ideal: CONFIG.VIDEO_IDEAL_H },
-    frameRate: { ideal: 20, max: CONFIG.VIDEO_FPS },
-  };
-}
-
+// ---------- Cámara y Flash (Torch) ----------
 async function iniciarCamara() {
   if (estado_app.stream) return;
   try {
-    // Sin "max" rígido en width/height para que iOS/Android habiliten el formato fotográfico de 12MP en el sensor,
-    // mientras "ideal: 1280x960 @ 24fps" mantiene el video en vivo ligero y rápido.
     const stream = await navigator.mediaDevices.getUserMedia({
       audio: false,
-      video: restriccionesPreview(),
+      video: {
+        facingMode: { ideal: 'environment' },
+        width: { ideal: 1280, max: CONFIG.VIDEO_MAX_W },
+        height: { ideal: 960, max: CONFIG.VIDEO_MAX_H },
+        frameRate: { ideal: 20, max: CONFIG.VIDEO_FPS },
+      },
     });
     if (estado_app.pantalla !== 'camara' || document.hidden) {
       stream.getTracks().forEach((t) => t.stop());
       return;
     }
-
     estado_app.stream = stream;
     const pista = stream.getVideoTracks()[0];
     const caps = pista.getCapabilities ? pista.getCapabilities() : {};
 
-    // Inicializar capturador fotográfico dedicado del hardware (ISP) si el navegador lo soporta
-    estado_app.capturador = null;
-    if ('ImageCapture' in window) {
-      try {
-        const ic = new ImageCapture(pista);
-        if (typeof ic.takePhoto === 'function') estado_app.capturador = ic;
-      } catch {}
+    if (caps.focusMode?.includes('continuous')) {
+      pista.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(() => {});
     }
 
-    // Si algún Android abrió el preview por encima de 1080p y ya tenemos ImageCapture independiente, bajamos el video
-    const confActual = pista.getSettings ? pista.getSettings() : {};
-    if (estado_app.capturador && (confActual.width > 1920 || confActual.height > 1440)) {
-      pista.applyConstraints({
-        width: { ideal: CONFIG.VIDEO_IDEAL_W, max: 1600 },
-        height: { ideal: CONFIG.VIDEO_IDEAL_H, max: 1200 },
-        frameRate: { ideal: 20, max: CONFIG.VIDEO_FPS },
-      }).catch(() => {});
-    }
-
-    // Activar enfoque, exposición y balance de blancos continuos
-    const continuo = {};
-    if (caps.focusMode?.includes('continuous')) continuo.focusMode = 'continuous';
-    if (caps.exposureMode?.includes('continuous')) continuo.exposureMode = 'continuous';
-    if (caps.whiteBalanceMode?.includes('continuous')) continuo.whiteBalanceMode = 'continuous';
-    if (Object.keys(continuo).length) {
-      pista.applyConstraints({ advanced: [continuo] }).catch(() => {});
-    }
-
-    // Configurar botón de Flash (Torch)
     estado_app.flash = false;
     const btnFlash = $('#btn-flash');
     btnFlash.hidden = !caps.torch;
     btnFlash.classList.remove('encendido');
     btnFlash.textContent = 'Flash: OFF';
-
-    // Configurar botón de Zoom óptico/sensor (1x / 1.5x / 2x) para etiquetas pequeñas sin acercar de más el lente
-    estado_app.zoom = 1;
-    const minZ = caps.zoom?.min ?? 1;
-    const maxZ = caps.zoom?.max ?? 1;
-    estado_app.zoomNiveles = PASOS_ZOOM.filter((z) => z >= minZ && z <= maxZ);
-    const btnZoom = $('#btn-zoom');
-    btnZoom.hidden = estado_app.zoomNiveles.length < 2;
-    btnZoom.classList.remove('activo');
-    btnZoom.textContent = '1x';
 
     $('#video').srcObject = stream;
     await $('#video').play();
@@ -295,67 +247,11 @@ async function alternarFlash() {
   }
 }
 
-async function alternarZoom() {
-  const pista = estado_app.stream?.getVideoTracks()[0];
-  if (!pista || estado_app.zoomNiveles.length < 2) return;
-  const idx = (estado_app.zoomNiveles.indexOf(estado_app.zoom) + 1) % estado_app.zoomNiveles.length;
-  const nuevoZoom = estado_app.zoomNiveles[idx];
-  try {
-    await pista.applyConstraints({ advanced: [{ zoom: nuevoZoom }] });
-    estado_app.zoom = nuevoZoom;
-    const btnZoom = $('#btn-zoom');
-    btnZoom.textContent = `${nuevoZoom}x`;
-    btnZoom.classList.toggle('activo', nuevoZoom > 1);
-  } catch {}
-}
-
-// Re-enfocar al tocar el visor de video (útil al pasar de caja grande a texto diminuto de etiqueta)
-async function enfocarAlTocar(e) {
-  const pista = estado_app.stream?.getVideoTracks()[0];
-  if (!pista || !$('#previo').hidden) return;
-
-  const rect = $('#pantalla-camara').getBoundingClientRect();
-  const aro = $('#foco-aro');
-  aro.style.left = `${e.clientX - rect.left}px`;
-  aro.style.top = `${e.clientY - rect.top}px`;
-  aro.hidden = false;
-  aro.style.transform = 'scale(1.25)';
-  requestAnimationFrame(() => (aro.style.transform = 'scale(1)'));
-  clearTimeout(enfocarAlTocar.t);
-  enfocarAlTocar.t = setTimeout(() => (aro.hidden = true), 900);
-
-  const caps = pista.getCapabilities ? pista.getCapabilities() : {};
-  try {
-    const vRect = $('#video').getBoundingClientRect();
-    const nx = Math.min(1, Math.max(0, (e.clientX - vRect.left) / vRect.width));
-    const ny = Math.min(1, Math.max(0, (e.clientY - vRect.top) / vRect.height));
-    const foco = {};
-    if (caps.pointsOfInterest) foco.pointsOfInterest = [{ x: nx, y: ny }];
-    if (caps.focusMode?.includes('single-shot')) foco.focusMode = 'single-shot';
-    else if (caps.focusMode?.includes('continuous')) foco.focusMode = 'continuous';
-
-    if (Object.keys(foco).length) {
-      await pista.applyConstraints({ advanced: [foco] });
-      // Regresar a enfoque continuo tras fijar foco en la etiqueta
-      if (foco.focusMode === 'single-shot' && caps.focusMode?.includes('continuous')) {
-        setTimeout(() => {
-          pista.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(() => {});
-        }, 1200);
-      }
-    }
-  } catch {}
-}
-
 function detenerCamara() {
   estado_app.stream?.getTracks().forEach((t) => t.stop());
   estado_app.stream = null;
-  estado_app.capturador = null;
-  estado_app.capturando = false;
   estado_app.flash = false;
-  estado_app.zoom = 1;
   $('#btn-flash')?.classList.remove('encendido');
-  $('#btn-zoom')?.classList.remove('activo');
-  $('#btn-disparo')?.classList.remove('capturando');
 }
 
 let urls = [];
@@ -413,9 +309,8 @@ function renderCamara() {
   for (const f of fs) {
     const d = document.createElement('div');
     d.className = 'mini';
-    const fuenteMini = f.miniBlob || f.blob;
-    if (fuenteMini) {
-      const u = URL.createObjectURL(fuenteMini);
+    if (f.blob) {
+      const u = URL.createObjectURL(f.blob);
       urls.push(u);
       d.innerHTML = `<img src="${u}" alt="">`;
     } else {
@@ -457,151 +352,8 @@ function siguientePendiente() {
   toast('No quedan pendientes de foto ✓');
 }
 
-// ---------- Procesamiento de captura de alta calidad ----------
-const conLimiteTiempo = (promesa, ms) =>
-  Promise.race([
-    promesa,
-    new Promise((_, mal) => setTimeout(() => mal(new Error('timeout')), ms)),
-  ]);
-
-function canvasABlob(canvas, tipo, calidad) {
-  return new Promise((ok) => canvas.toBlob(ok, tipo, calidad));
-}
-
-// Si el sensor entrega ~12 MP (<= FOTO_MAX_PX y <= FOTO_MAX_BYTES), conserva el JPEG original del ISP sin recomprimir.
-// Si entrega 50 MP / 100 MP crudos, lo escala con suavizado alto a FOTO_MAX_PX y JPEG 0.92.
-async function normalizarFoto(blobCrudo) {
-  const bmp = await createImageBitmap(blobCrudo);
-  try {
-    const ladoMayor = Math.max(bmp.width, bmp.height);
-    if (
-      blobCrudo.type === 'image/jpeg' &&
-      ladoMayor <= CONFIG.FOTO_MAX_PX &&
-      blobCrudo.size <= CONFIG.FOTO_MAX_BYTES
-    ) {
-      return { blob: blobCrudo, ancho: bmp.width, alto: bmp.height };
-    }
-
-    const k = Math.min(1, CONFIG.FOTO_MAX_PX / ladoMayor);
-    const c = document.createElement('canvas');
-    c.width = Math.round(bmp.width * k);
-    c.height = Math.round(bmp.height * k);
-    const ctx = c.getContext('2d');
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = 'high';
-    ctx.drawImage(bmp, 0, 0, c.width, c.height);
-
-    const blob = await canvasABlob(c, 'image/jpeg', CONFIG.FOTO_CALIDAD);
-    return { blob: blob || blobCrudo, ancho: c.width, alto: c.height };
-  } finally {
-    bmp.close();
-  }
-}
-
-// Miniatura ligera (~4 KB) para no decodificar imágenes de 12 MP en los recuadros de 52x52 px
-async function crearMiniatura(blob) {
-  try {
-    const bmp = await createImageBitmap(blob);
-    try {
-      const k = 120 / Math.max(bmp.width, bmp.height);
-      const c = document.createElement('canvas');
-      c.width = Math.max(1, Math.round(bmp.width * k));
-      c.height = Math.max(1, Math.round(bmp.height * k));
-      c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
-      return await canvasABlob(c, 'image/jpeg', 0.65);
-    } finally {
-      bmp.close();
-    }
-  } catch {
-    return null;
-  }
-}
-
-// Vía 1 (Principal): Disparo fotográfico nativo por hardware usando ImageCapture
-async function capturarPorISP(pista) {
-  const cap = estado_app.capturador;
-  if (!cap) return null;
-
-  let opts = {};
-  if (typeof cap.getPhotoCapabilities === 'function') {
-    try {
-      const pc = await cap.getPhotoCapabilities();
-      const maxW = pc.imageWidth?.max;
-      const maxH = pc.imageHeight?.max;
-      if (maxW && maxH) {
-        const k = Math.min(1, CONFIG.FOTO_MAX_PX / Math.max(maxW, maxH));
-        const stepW = pc.imageWidth.step || 1;
-        const stepH = pc.imageHeight.step || 1;
-        opts = {
-          imageWidth: Math.max(pc.imageWidth.min || 640, Math.round((maxW * k) / stepW) * stepW),
-          imageHeight: Math.max(pc.imageHeight.min || 480, Math.round((maxH * k) / stepH) * stepH),
-        };
-      }
-    } catch {}
-  }
-
-  let blob;
-  try {
-    blob = await conLimiteTiempo(cap.takePhoto(opts), 4000);
-  } catch {
-    blob = await conLimiteTiempo(cap.takePhoto(), 4000);
-  }
-
-  // Algunos teléfonos Android apagan la linterna al terminar takePhoto(); si estaba encendida, la restauramos
-  if (estado_app.flash && pista) {
-    pista.applyConstraints({ advanced: [{ torch: true }] }).catch(() => {});
-  }
-  return blob;
-}
-
-// Vía 2 (Respaldo para iPhone/Safari sin ImageCapture): sube la pista a alta resolución un instante, captura y baja a preview
-async function capturarPorRafagaAltaRes(v, pista) {
-  const caps = pista?.getCapabilities ? pista.getCapabilities() : {};
-  const maxW = Math.min(CONFIG.FOTO_MAX_PX, caps.width?.max || CONFIG.FOTO_MAX_PX);
-  const maxH = Math.min(CONFIG.FOTO_MAX_PX, caps.height?.max || Math.round(maxW * 0.75));
-  const subioResolucion = pista && maxW > v.videoWidth;
-
-  try {
-    if (subioResolucion) {
-      const esperaResize = new Promise((ok) => {
-        const listo = () => { v.removeEventListener('resize', listo); ok(); };
-        v.addEventListener('resize', listo);
-        setTimeout(listo, 450);
-      });
-      await pista.applyConstraints({ width: { ideal: maxW }, height: { ideal: maxH } });
-      await esperaResize;
-      await new Promise((ok) => requestAnimationFrame(ok));
-    }
-
-    const k = Math.min(1, CONFIG.FOTO_MAX_PX / Math.max(v.videoWidth, v.videoHeight));
-    const c = document.createElement('canvas');
-    c.width = Math.round(v.videoWidth * k);
-    c.height = Math.round(v.videoHeight * k);
-    const ctx = c.getContext('2d');
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = 'high';
-    ctx.drawImage(v, 0, 0, c.width, c.height);
-
-    const blob = await canvasABlob(c, 'image/jpeg', CONFIG.FOTO_CALIDAD);
-    return { blob, ancho: c.width, alto: c.height };
-  } finally {
-    if (subioResolucion) {
-      await pista.applyConstraints(restriccionesPreview()).catch(() => {});
-      const extras = {};
-      if (estado_app.flash) extras.torch = true;
-      if (estado_app.zoom > 1) extras.zoom = estado_app.zoom;
-      if (Object.keys(extras).length) {
-        pista.applyConstraints({ advanced: [extras] }).catch(() => {});
-      }
-    }
-  }
-}
-
-async function mostrarPrevio(blob, ancho, alto) {
+async function mostrarPrevio(blob) {
   estado_app.previo = blob;
-  const pesoMB = (blob.size / (1024 * 1024)).toFixed(2);
-  $('#previo-info').textContent = `${ancho}x${alto} · ${pesoMB} MB`;
-
   const img = $('#previo-img');
   URL.revokeObjectURL(img.src);
   img.src = URL.createObjectURL(blob);
@@ -616,39 +368,15 @@ function cerrarPrevio() {
   $('#video').play().catch(() => {});
 }
 
-async function capturar() {
+function capturar() {
   const v = $('#video');
-  if (estado_app.capturando || !v.videoWidth || !$('#previo').hidden) return;
-
-  estado_app.capturando = true;
-  const btn = $('#btn-disparo');
-  btn.classList.add('capturando');
-
-  const pista = estado_app.stream?.getVideoTracks()[0];
-  try {
-    let resultado = null;
-    if (estado_app.capturador) {
-      try {
-        const blobISP = await capturarPorISP(pista);
-        if (blobISP) resultado = await normalizarFoto(blobISP);
-      } catch (e) {
-        console.warn('Fallo captura ISP, usando ráfaga de alta resolución:', e);
-      }
-    }
-
-    if (!resultado) {
-      resultado = await capturarPorRafagaAltaRes(v, pista);
-    }
-
-    if (resultado?.blob) {
-      await mostrarPrevio(resultado.blob, resultado.ancho, resultado.alto);
-    }
-  } catch (e) {
-    toast('Error al capturar foto: ' + e.message);
-  } finally {
-    estado_app.capturando = false;
-    btn.classList.remove('capturando');
-  }
+  if (!v.videoWidth || !$('#previo').hidden) return;
+  const k = Math.min(1, CONFIG.FOTO_MAX_PX / Math.max(v.videoWidth, v.videoHeight));
+  const c = document.createElement('canvas');
+  c.width = Math.round(v.videoWidth * k);
+  c.height = Math.round(v.videoHeight * k);
+  c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+  c.toBlob((b) => b && mostrarPrevio(b), 'image/jpeg', CONFIG.FOTO_CALIDAD);
 }
 
 function construirDescripcionDrive(p, tipoHoja) {
@@ -674,23 +402,19 @@ async function aceptar() {
     return toast('Elige tu nombre arriba');
   }
 
-  const blobFinal = estado_app.previo;
-  const miniBlob = await crearMiniatura(blobFinal);
-
   const tipoHoja = p.tipo === 'segregado' && p.sinBS
     ? (CONFIG.TIPOS.segregado_sin_bs ?? CONFIG.TIPOS.validacion)
     : (CONFIG.TIPOS[p.tipo] ?? p.tipo);
 
   const n = Math.max(0, ...fotosDe(p.id).map((f) => f.n)) + 1;
   const descripcionDrive = construirDescripcionDrive(p, tipoHoja);
-  blobFinal.descripcionDrive = descripcionDrive;
+  estado_app.previo.descripcionDrive = descripcionDrive;
 
   const f = {
     paqueteId: p.id,
     n,
     nombre: n === 1 ? `${p.id}.jpg` : `${p.id}_${n}.jpg`,
-    blob: blobFinal,
-    miniBlob,
+    blob: estado_app.previo,
     descripcionDrive,
     ts: Date.now(),
     validador: estado_app.validador,
@@ -785,9 +509,7 @@ async function iniciar() {
   };
 
   document.querySelectorAll('nav button').forEach((b) => (b.onclick = () => mostrar(b.dataset.ir)));
-  $('#video').onclick = enfocarAlTocar;
   $('#btn-flash').onclick = alternarFlash;
-  $('#btn-zoom').onclick = alternarZoom;
   $('#btn-disparo').onclick = capturar;
   $('#btn-aceptar').onclick = aceptar;
   $('#btn-rechazar').onclick = cerrarPrevio;

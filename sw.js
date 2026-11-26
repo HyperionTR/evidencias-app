@@ -1,6 +1,6 @@
 // Cachea la app para que abra sin internet (stale-while-revalidate: sirve del caché y actualiza al fondo).
 // Las llamadas a Google (otro origen) NO pasan por aquí.
-const V = 'evidencias-v3.5';
+const V = 'evidencias-v3';
 const ARCHIVOS = [
   './', 'index.html', 'styles.css', 'manifest.webmanifest',
   'js/app.js', 'js/config.js', 'js/db.js', 'js/google.js', 'js/orden.js', 'js/parser.js', 'js/sync.js',

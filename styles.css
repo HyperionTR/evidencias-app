@@ -50,18 +50,11 @@ tr.valido   { background:#7fe8f5; }
 
 #pantalla-camara { position:absolute; inset:0; background:var(--card); }
 #video { width:100%; height:100%; object-fit:contain; background:var(--card); }
-#foco-aro {
-  position:absolute; width:56px; height:56px; margin:-28px 0 0 -28px;
-  border:2px solid var(--amarillo); border-radius:50%; pointer-events:none;
-  box-shadow:0 0 6px #000a; transition:transform .18s ease-out, opacity .25s;
-}
-#datos-paquete { position:absolute; top:0; left:0; right:0; padding:10px 12px; background:linear-gradient(var(--bg) 45%, var(--bg-trns)); text-shadow:0 1px 3px #000; pointer-events:none; }
+#datos-paquete { position:absolute; top:0; left:0; right:0; padding:10px 12px; background:linear-gradient(var(--bg) 45%, var(--bg-trns)); text-shadow:0 1px 3px #000; }
 .dp-top { display:flex; justify-content:space-between; align-items:flex-start; gap:8px; }
-.dp-acciones { display:flex; gap:6px; pointer-events:auto; }
 #dp-id { font:700 25px/1.1 ui-monospace, monospace; letter-spacing:.5px; word-break:break-all; }
-#btn-flash, #btn-zoom { background:#0009; border-color:#fff5; padding:6px 10px; font-weight:700; }
+#btn-flash { background:#0009; border-color:#fff5; padding:6px 11px; font-weight:700; }
 #btn-flash.encendido { background:var(--amarillo); color:#110; border-color:var(--amarillo); text-shadow:none; }
-#btn-zoom.activo { border-color:var(--cyan); color:var(--cyan); }
 #dp-desc { font-size:14px; margin-top:4px; max-height:2.7em; overflow:hidden; }
 #dp-ruta { font-size:22px; font-weight:700; color:var(--cyan); margin-top:2px; }
 #dp-extra { font-size:13px; color:#cfd8e6; }
@@ -84,13 +77,11 @@ tr.valido   { background:#7fe8f5; }
 #lbl-vacia { font-size:14px; background:#0008; padding:6px 10px; border-radius:8px; display:flex; align-items:center; column-gap:0.3rem; }
 #controles { display:flex; align-items:center; justify-content:space-between; width:100%; max-width:380px; }
 #controles button { width:56px; height:56px; border-radius:50%; font-size:20px; padding:0; }
-#btn-disparo { width:74px !important; height:74px !important; background:#fff; border:5px solid #9ab; transition:transform .12s, opacity .12s; }
-#btn-disparo.capturando { background:var(--amarillo); border-color:#fff; transform:scale(0.92); opacity:0.85; }
+#btn-disparo { width:74px !important; height:74px !important; background:#fff; border:5px solid #9ab; }
 #btn-listo { width:100%; max-width:380px; background:var(--ok); color:#042; font-weight:700; border:0; }
 
 #previo { position:absolute; inset:0; background:var(--bg); display:flex; flex-direction:column; z-index:5; }
-#previo-info { position:absolute; top:10px; right:12px; background:#000b; color:var(--cyan); font:600 12px/1 ui-monospace, monospace; padding:6px 9px; border-radius:6px; z-index:6; pointer-events:none; }
-#previo img { flex:1; min-height:0; width:100%; object-fit:contain; touch-action:pinch-zoom; }
+#previo img { flex:1; min-height:0; width:100%; object-fit:contain; }
 #previo .fila { padding:10px; } #previo button { padding:16px; font-weight:700; }
 #btn-aceptar { background:var(--ok); color:#042; border:0; } #btn-rechazar { background:var(--bad); border:0; }
 

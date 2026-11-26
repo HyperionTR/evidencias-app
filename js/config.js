@@ -22,13 +22,12 @@ export const CONFIG = {
     segregado_sin_bs: 'auditoria',
   },
 
-  // --- Cámara: vista previa ligera + captura de alta definición ---
-  VIDEO_IDEAL_W: 1280,          // Vista en vivo ligera (4:3, ~1.2 MP) para máxima fluidez
-  VIDEO_IDEAL_H: 960,
+  // --- Cámara y compresión ---
+  VIDEO_MAX_W: 1440,
+  VIDEO_MAX_H: 1080,
   VIDEO_FPS: 24,
-  FOTO_MAX_PX: 4080,            // ~12.5 MP (cubre nativo 4000x3000, 4032x3024 iPhone y 4080x3060 de 50MP)
-  FOTO_MAX_BYTES: 4_500_000,    // Si el JPEG nativo del sensor pesa <= 4.5 MB y cabe en FOTO_MAX_PX, no se recomprime
-  FOTO_CALIDAD: 0.92,           // Calidad JPEG alta cuando se redimensiona un disparo mayor (ej. 50MP/100MP sin agrupar)
+  FOTO_MAX_PX: 1440,
+  FOTO_CALIDAD: 0.82,
 
   // --- Orden de rutas ---
   CICLOS: {

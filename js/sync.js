@@ -1,61 +1,66 @@
-// Cola de subida. La "cola" es simplemente S.fotos con estado != 'listo' (persistidas en IndexedDB).
-// Cada foto avanza: pendiente -> enDrive -> listo. Si falla a la mitad, el reintento continúa
-// desde donde se quedó (no vuelve a subir la foto ni duplica la fila).
+// Cola de subida en dos pasos (pendiente -> enDrive -> listo) resistente a cortes de red.
 import { poner } from './db.js';
-import { asegurarRuta, subirArchivo, agregarFila } from './google.js';
+import { conectado, asegurarRuta, subirArchivo, agregarFila } from './google.js';
 
 const pad = (n) => String(n).padStart(2, '0');
-const fechaCarpeta = (t) => {
-  const d = new Date(t);
+function carpetaFecha(ts) {
+  const d = new Date(ts);
   return `${pad(d.getDate())}-${pad(d.getMonth() + 1)}-${d.getFullYear()}`;
-};
+}
 
 export function crearSync(estado_app, alCambiar) {
-  let corriendo = false, espera = 2000, timer = null;
+  let corriendo = false;
+  let timer = null;
+
   const pendientes = () => estado_app.fotos.filter((f) => f.estado !== 'listo');
 
-  async function subir(f) {
-    if (f.estado === 'pendiente') {
-      const carpeta = await asegurarRuta([fechaCarpeta(f.ts), f.validador]);
-      const r = await subirArchivo(f.nombre, f.blob, carpeta);
-      f.driveId = r.id;
-      f.url = `https://drive.google.com/open?id=${r.id}`;
-      f.estado = 'enDrive';
-      await poner('fotos', f);
-    }
-    if (f.estado === 'enDrive') {
-      await agregarFila(f);
-      f.estado = 'listo';
-      f.blob = null; // libera espacio del teléfono
-      await poner('fotos', f);
-    }
-  }
-
   async function procesar() {
-    if (corriendo || !navigator.onLine) return;
-    corriendo = true;
     clearTimeout(timer);
-    estado_app.sync = 'ok';
-    alCambiar();
+    if (corriendo || !navigator.onLine || !conectado()) return;
+    const cola = pendientes();
+    if (!cola.length) {
+      estado_app.sync = 'ok';
+      alCambiar();
+      return;
+    }
+
+    corriendo = true;
     try {
-      for (let f; (f = pendientes()[0]); ) {
-        await subir(f);
-        espera = 2000;
-        alCambiar();
+      for (const f of cola) {
+        if (!navigator.onLine || !conectado()) break;
+
+        // Paso 1: Subir imagen + descripción a Drive si aún está pendiente
+        if (f.estado === 'pendiente') {
+          const carpetaId = await asegurarRuta([carpetaFecha(f.ts), f.validador]);
+          const arch = await subirArchivo(f.nombre, f.blob, carpetaId, f.descripcionDrive);
+          f.driveId = arch.id;
+          f.url = `https://drive.google.com/open?id=${arch.id}`;
+          f.estado = 'enDrive';
+          await poner('fotos', f);
+          alCambiar();
+        }
+
+        // Paso 2: Registrar fila en la pestaña del mes correspondiente en Sheets
+        if (f.estado === 'enDrive') {
+          await agregarFila(f);
+          f.estado = 'listo';
+          delete f.blob; // Libera los bytes de la imagen en IndexedDB pero conserva el registro ✓
+          await poner('fotos', f);
+          alCambiar();
+        }
       }
+      estado_app.sync = 'ok';
     } catch (e) {
+      console.warn('Error en sincronización:', e);
       if (e.code !== 'AUTH') {
-        // red caída u error temporal: reintento con espera creciente
         estado_app.sync = 'error';
-        console.warn('subida falló', e);
-        timer = setTimeout(procesar, espera);
-        espera = Math.min(espera * 2, 60000);
-      } // si es AUTH, espera a que el usuario toque "Conectar Google"
+        timer = setTimeout(procesar, 15000);
+      }
     } finally {
       corriendo = false;
       alCambiar();
     }
   }
 
-  return { procesar, pendientes };
+  return { pendientes, procesar };
 }

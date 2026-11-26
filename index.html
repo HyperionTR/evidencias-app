@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="apple-touch-icon" href="icons/icon-512.png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
   <link rel="stylesheet" href="styles.css">
   <title>Evidencias</title>
 </head>
@@ -21,17 +21,30 @@
   <main>
     <!-- Pantalla 1: datos -->
     <section id="pantalla-datos">
-      <select id="tipo">
-        <option value="validacion">Validación</option>
-        <option value="segregado">Segregado</option>
-      </select>
-      <textarea id="pegado" rows="4" placeholder="Pega aquí las filas copiadas de Google Sheets (o solo IDs)"></textarea>
-      <div class="fila">
-        <button id="btn-reemplazar">Reemplazar lista</button>
-        <button id="btn-agregar">Agregar a la lista</button>
+      <details id="panel-carga" open>
+        <summary>Pegar / actualizar lista de paquetes</summary>
+        <div class="carga-body">
+          <select id="tipo">
+            <option value="validacion">Validación</option>
+            <option value="segregado">Segregado</option>
+          </select>
+          <textarea id="pegado" rows="3" placeholder="Pega aquí las filas copiadas de Google Sheets (o solo IDs)"></textarea>
+          <div class="fila">
+            <button id="btn-reemplazar">Reemplazar lista</button>
+            <button id="btn-agregar">Agregar a la lista</button>
+          </div>
+        </div>
+      </details>
+
+      <div class="resumen-bar">
+        <div>
+          <p id="resumen-1"></p>
+          <p id="resumen-2"></p>
+        </div>
+        <button id="btn-regresar-todos" class="btn-lote" hidden></button>
       </div>
-      <p id="resumen-1"></p>
-      <p id="resumen-2"></p>
+
+      <div id="filtros"></div>
       <div class="tabla-wrap"><table id="tabla"><tbody></tbody></table></div>
     </section>
 
@@ -39,14 +52,22 @@
     <section id="pantalla-camara" hidden>
       <video id="video" playsinline muted autoplay></video>
       <div id="datos-paquete">
-        <div id="dp-id"></div>
+        <div class="dp-top">
+          <div id="dp-id"></div>
+          <button id="btn-flash" class="pill" hidden>Flash: OFF</button>
+        </div>
         <div id="dp-desc"></div>
         <div id="dp-ruta"></div>
         <div id="dp-extra"></div>
         <div id="dp-validacion"></div>
       </div>
+
       <div id="abajo">
         <div id="miniaturas"></div>
+        <div id="barra-segregado" hidden>
+          <button id="btn-seg-fase"></button>
+          <button id="btn-sin-bs"></button>
+        </div>
         <label id="lbl-vacia"><input type="checkbox" id="chk-vacia"> Caja vacía (fraude)</label>
         <div id="controles">
           <button id="btn-prev">◀</button>
@@ -55,6 +76,7 @@
         </div>
         <button id="btn-listo" hidden>Listo · siguiente pendiente ▶▶</button>
       </div>
+
       <div id="previo" hidden>
         <img id="previo-img" alt="">
         <div class="fila">

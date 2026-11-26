@@ -5,6 +5,12 @@ import { CONFIG } from './config.js';
 
 const SCOPES = 'https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/spreadsheets';
 const DRIVE = 'https://www.googleapis.com/drive/v3';
+const SHEETS = 'https://sheets.googleapis.com/v4/spreadsheets';
+const MESES = [
+  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+];
+
 const err = (msg, code) => Object.assign(new Error(msg), { code });
 
 let token = null, expira = 0, cliente = null;
@@ -20,7 +26,6 @@ function cargarGIS() {
   });
 }
 
-// Debe llamarse desde un toque del usuario la primera vez (si no, el navegador bloquea el popup).
 export async function conectar() {
   await cargarGIS();
   if (!window.google?.accounts) throw err('Sin acceso a Google', 'RED');
@@ -42,13 +47,11 @@ export async function conectar() {
       clearTimeout(t);
       mal(err(e.type || 'popup', 'AUTH'));
     };
-    cliente.requestAccessToken({ prompt: '' }); // sin UI si ya hay sesión y consentimiento
+    cliente.requestAccessToken({ prompt: '' });
   });
 }
 
 async function api(url, opts = {}) {
-  // Sin sesión NO se abre el popup solo: el navegador lo bloquea si no viene de un toque del usuario.
-  // Quien conecta es el botón de estado ("Conectar Google"), que sí es un toque.
   if (!conectado()) throw err('Sin sesión', 'AUTH');
   const r = await fetch(url, { ...opts, headers: { ...opts.headers, Authorization: `Bearer ${token}` } });
   if (r.status === 401) {
@@ -67,7 +70,13 @@ async function carpeta(nombre, padre) {
     const q = `'${padre}' in parents and name='${nombre.replace(/'/g, "\\'")}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
     const r = await api(
       `${DRIVE}/files?` +
-        new URLSearchParams({ q, fields: 'files(id)', orderBy: 'createdTime', supportsAllDrives: 'true', includeItemsFromAllDrives: 'true' })
+        new URLSearchParams({
+          q,
+          fields: 'files(id)',
+          orderBy: 'createdTime',
+          supportsAllDrives: 'true',
+          includeItemsFromAllDrives: 'true',
+        })
     );
     return r.files[0]?.id;
   };
@@ -78,7 +87,6 @@ async function carpeta(nombre, padre) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: nombre, mimeType: 'application/vnd.google-apps.folder', parents: [padre] }),
     });
-    // Si dos personas la crearon a la vez, todos convergen en la más antigua.
     id = (await buscar()) ?? nuevo.id;
   }
   cacheCarpetas.set(k, id);
@@ -92,9 +100,13 @@ export async function asegurarRuta(partes) {
   return id;
 }
 
-export async function subirArchivo(nombre, blob, carpetaId) {
+export async function subirArchivo(nombre, blob, carpetaId, descripcion = '') {
+  const textoDesc = descripcion || blob?.descripcionDrive || '';
+  const meta = { name: nombre, parents: [carpetaId] };
+  if (textoDesc) meta.description = textoDesc;
+
   const form = new FormData();
-  form.append('metadata', new Blob([JSON.stringify({ name: nombre, parents: [carpetaId] })], { type: 'application/json' }));
+  form.append('metadata', new Blob([JSON.stringify(meta)], { type: 'application/json' }));
   form.append('file', blob);
   try {
     return await api('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true&fields=id', {
@@ -102,9 +114,70 @@ export async function subirArchivo(nombre, blob, carpetaId) {
       body: form,
     });
   } catch (e) {
-    if (e.code === 404) cacheCarpetas.clear(); // carpeta borrada: que se recree en el reintento
+    if (e.code === 404) cacheCarpetas.clear();
     throw e;
   }
+}
+
+// --- Resolución de archivo anual en la raíz de la Unidad Compartida ---
+const cacheHojasAnuales = new Map();
+const promesasHojaAnual = new Map();
+const carpetaSheets = () => CONFIG.SHEETS_FOLDER_ID || CONFIG.ROOT_FOLDER_ID;
+const claveCacheAnual = (anio) => `evidencias_sheet_${carpetaSheets()}_${anio}`;
+
+function limpiarCacheAnual(anio) {
+  cacheHojasAnuales.delete(anio);
+  try { localStorage.removeItem(claveCacheAnual(anio)); } catch {}
+}
+
+async function obtenerHojaAnual(anio) {
+  if (cacheHojasAnuales.has(anio)) return cacheHojasAnuales.get(anio);
+  try {
+    const guardado = localStorage.getItem(claveCacheAnual(anio));
+    if (guardado) {
+      cacheHojasAnuales.set(anio, guardado);
+      return guardado;
+    }
+  } catch {}
+
+  if (promesasHojaAnual.has(anio)) return promesasHojaAnual.get(anio);
+
+  const tarea = (async () => {
+    const padre = carpetaSheets();
+    const esRaizUnidad = padre.startsWith('0A'); // ID raíz de Unidad Compartida (ej. 0AJD...Uk9PVA)
+    const nombreArchivo = CONFIG.SHEET_ANUAL_NOMBRE.replace('{ANIO}', anio);
+
+    const buscar = async () => {
+      const q = `'${padre}' in parents and name='${nombreArchivo.replace(/'/g, "\\'")}' and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false`;
+      const params = new URLSearchParams({
+        q,
+        fields: 'files(id)',
+        orderBy: 'createdTime',
+        supportsAllDrives: 'true',
+        includeItemsFromAllDrives: 'true',
+        ...(esRaizUnidad ? { corpora: 'drive', driveId: padre } : {}),
+      });
+      const r = await api(`${DRIVE}/files?${params}`);
+      return r.files[0]?.id;
+    };
+
+    let id = await buscar();
+    if (!id) {
+      const copia = await api(`${DRIVE}/files/${CONFIG.TEMPLATE_SHEET_ID}/copy?supportsAllDrives=true&fields=id`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: nombreArchivo, parents: [padre] }),
+      });
+      id = (await buscar()) ?? copia.id;
+    }
+
+    cacheHojasAnuales.set(anio, id);
+    try { localStorage.setItem(claveCacheAnual(anio), id); } catch {}
+    return id;
+  })().finally(() => promesasHojaAnual.delete(anio));
+
+  promesasHojaAnual.set(anio, tarea);
+  return tarea;
 }
 
 const pad = (n) => String(n).padStart(2, '0');
@@ -113,15 +186,27 @@ const fmt = (t) => {
   return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 };
 
-// Mismo orden de columnas que el formulario: Timestamp | (vacío) | URL | ¿Caja vacía? | Tipo | Validador | ID
-export function agregarFila(f) {
-  const rango = encodeURIComponent(`${CONFIG.SHEET_TAB}!A:G`);
-  return api(
-    `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}/values/${rango}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ values: [[fmt(f.ts), '', f.url, f.cajaVacia ? 'Sí' : 'No', f.tipo, f.validador, f.paqueteId]] }),
-    }
-  );
+// Orden de columnas: Timestamp | (vacío) | URL | ¿Caja vacía? | Tipo | Validador | ID
+export async function agregarFila(f) {
+  const d = new Date(f.ts);
+  const anio = String(d.getFullYear());
+  const pestana = CONFIG.SHEET_MES_NOMBRE.replace('{MES}', MESES[d.getMonth()]);
+  const sheetId = await obtenerHojaAnual(anio);
+  const rango = encodeURIComponent(`${pestana}!A:G`);
+
+  try {
+    return await api(
+      `${SHEETS}/${sheetId}/values/${rango}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          values: [[fmt(f.ts), '', f.url, f.cajaVacia ? 'Sí' : 'No', f.tipo, f.validador, f.paqueteId]],
+        }),
+      }
+    );
+  } catch (e) {
+    if (e.code === 404) limpiarCacheAnual(anio);
+    throw e;
+  }
 }

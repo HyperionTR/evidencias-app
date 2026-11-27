@@ -36,6 +36,7 @@ const fotoPorUID = (uid) => estado_app.fotos.find((f) => f.uid === uid);
 const fotosDe = (id) => estado_app.fotos.filter((f) => f.paqueteId === id);
 const porId = (id) => estado_app.paquetes.find((p) => p.id === id);
 const tieneFoto = (p) => fotosDe(p.id).length > 0;
+// Marca que un paquete está en baker o se puede navegar por el en la lista
 const disponible = (p) =>
   p.soloId || p.estatus === 'in_container' || p.estatus === 'ready_to_deliver' || !!p.segFase || tieneFoto(p);
 
@@ -530,7 +531,6 @@ async function iniciar() {
   };
   $('#btn-sin-bs').onclick = () => alternarSinBS(porId(estado_app.actual));
 
-  // Funcion que se encarga de borrar la foto y, por lo tanto, cambia la fase de segregado
   $('#miniaturas').onclick = async (e) => {
     const uid = +e.target.dataset.uid;
     if (!uid) return;
@@ -538,8 +538,9 @@ async function iniciar() {
     // Encontramos foto por uid
     // Una vez encontrada, cambiamos el estado de segregado si es su ultima foto
     const paqueteId = fotoPorUID(uid).paqueteId;
-    if (fotosDe(paqueteId).length === 1)
-      cambiarFaseSegregado(porId(paqueteId), '');
+    const paquete = porId(paqueteId);
+    if (fotosDe(paqueteId).length === 1 && paquete.segFase)
+      cambiarFaseSegregado(porId(paqueteId), 'tomado');
     // Y actualizamos el arreglo global de fotos
     estado_app.fotos = estado_app.fotos.filter((f) => f.uid !== uid);
     renderCamara();

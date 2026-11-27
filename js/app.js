@@ -32,11 +32,12 @@ const sync = crearSync(estado_app, () => {
   if (estado_app.pantalla === 'camara') renderCamara();
 });
 
+const fotoPorUID = (uid) => estado_app.fotos.find((f) => f.uid === uid);
 const fotosDe = (id) => estado_app.fotos.filter((f) => f.paqueteId === id);
 const porId = (id) => estado_app.paquetes.find((p) => p.id === id);
 const tieneFoto = (p) => fotosDe(p.id).length > 0;
 const disponible = (p) =>
-  p.soloId || p.estatus === 'in_container' || p.estatus === 'ready_to_deliver' || !!p.segFase;
+  p.soloId || p.estatus === 'in_container' || p.estatus === 'ready_to_deliver' || !!p.segFase || tieneFoto(p);
 
 // '' (blanco) | 'disp' (verde) | 'tomado' (amarillo) | 'en-bolsa' (naranja) | 'valido' (cyan)
 function estadoVisual(p) {
@@ -258,8 +259,9 @@ let urls = [];
 function renderCamara() {
   urls.forEach(URL.revokeObjectURL);
   urls = [];
-  const p = porId(estado_app.actual);
-  const est = p ? estadoVisual(p) : '';
+  
+  const p = porId(estado_app.actual); // Paquete actual en camara
+  const est = p ? estadoVisual(p) : ''; // Estauts
 
   $('#dp-id').textContent = p?.id ?? 'Sin paquete';
   $('#dp-desc').textContent = p?.descripcion ?? '';
@@ -304,8 +306,9 @@ function renderCamara() {
     btnSinBS.textContent = p.sinBS ? '✓ Sin BS: SÍ' : 'Sin BS: NO';
   }
 
-  const fs = p ? fotosDe(p.id) : [];
+  const fs = p ? fotosDe(p.id) : []; // arreglo de fotos del paquete
   $('#miniaturas').innerHTML = '';
+  // Funcion que crea las minituras segun las fotos de un paquete
   for (const f of fs) {
     const d = document.createElement('div');
     d.className = 'mini';
@@ -337,19 +340,17 @@ function paso(d) {
 }
 
 function siguientePendiente() {
-  const c = cola();
+  const c = cola(); // cola ya filtra sólo los disponibles
   if (!c.length) return;
   const i = Math.max(0, c.findIndex((p) => p.id === estado_app.actual));
 
+  
   for (let k = 1; k <= c.length; k++) {
     const p = c[(i + k) % c.length];
-    if (estadoVisual(p) === 'tomado') return ir(p.id);
+    if (!tieneFoto(p) && estadoVisual(p) !== 'tomado') return ir(p.id);
   }
-  for (let k = 1; k <= c.length; k++) {
-    const p = c[(i + k) % c.length];
-    if (!tieneFoto(p)) return ir(p.id);
-  }
-  toast('No quedan pendientes de foto ✓');
+
+  toast('No quedan paquetes en baker ✓');
 }
 
 async function mostrarPrevio(blob) {
@@ -425,6 +426,7 @@ async function aceptar() {
 
   f.uid = await poner('fotos', f);
   estado_app.fotos.push(f);
+  cambiarFaseSegregado(p, 'en-bolsa')
   cerrarPrevio();
   renderCamara();
   renderTabla();
@@ -528,10 +530,17 @@ async function iniciar() {
   };
   $('#btn-sin-bs').onclick = () => alternarSinBS(porId(estado_app.actual));
 
+  // Funcion que se encarga de borrar la foto y, por lo tanto, cambia la fase de segregado
   $('#miniaturas').onclick = async (e) => {
     const uid = +e.target.dataset.uid;
     if (!uid) return;
     await borrar('fotos', uid);
+    // Encontramos foto por uid
+    // Una vez encontrada, cambiamos el estado de segregado si es su ultima foto
+    const paqueteId = fotoPorUID(uid).paqueteId;
+    if (fotosDe(paqueteId).length === 1)
+      cambiarFaseSegregado(porId(paqueteId), '');
+    // Y actualizamos el arreglo global de fotos
     estado_app.fotos = estado_app.fotos.filter((f) => f.uid !== uid);
     renderCamara();
     renderTabla();
